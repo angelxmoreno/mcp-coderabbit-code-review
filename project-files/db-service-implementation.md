@@ -138,7 +138,8 @@ import type {
     CommentFilters, 
     PrStats 
 } from "../types/database.ts";
-import { DatabaseError, NotFoundError } from "../utils/errors.ts";
+import { DatabaseError } from "../errors/database.ts";
+import { NotFoundError } from "../errors/not-found.ts";
 
 export class DatabaseService {
     private db: Database | null = null;

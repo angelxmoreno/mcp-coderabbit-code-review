@@ -36,7 +36,7 @@ export class DatabaseService {
             logger.info({ path: this.databasePath }, 'Database connection established');
         } catch (error) {
             logger.error({ error, path: this.databasePath }, 'Failed to connect to database');
-            throw new DatabaseError(`Failed to connect to database: ${error}`);
+            throw new DatabaseError(`Failed to connect to database`, { cause: error });
         }
     }
 
@@ -49,7 +49,7 @@ export class DatabaseService {
                 logger.info('Database connection closed');
             } catch (error) {
                 logger.error({ error }, 'Error closing database');
-                throw new DatabaseError(`Failed to close database: ${error}`);
+                throw new DatabaseError(`Failed to close database`, { cause: error });
             }
         }
     }
@@ -199,7 +199,7 @@ export class DatabaseService {
             logger.info({ count: Object.keys(this.statements).length }, 'Prepared statements created');
         } catch (error) {
             logger.error({ error }, 'Failed to prepare statements');
-            throw new DatabaseError(`Failed to prepare statements: ${error}`);
+            throw new DatabaseError(`Failed to prepare statements`, { cause: error });
         }
     }
 
@@ -219,7 +219,7 @@ export class DatabaseService {
                 throw new DatabaseError(`PR already exists: ${repo}#${number}`);
             }
             logger.error({ error, repo, number }, 'Failed to create PR');
-            throw new DatabaseError(`Failed to create PR: ${error}`);
+            throw new DatabaseError(`Failed to create PR`, { cause: error });
         }
     }
 
@@ -233,7 +233,7 @@ export class DatabaseService {
             return result;
         } catch (error) {
             logger.error({ error, repo, number }, 'Failed to get PR');
-            throw new DatabaseError(`Failed to get PR: ${error}`);
+            throw new DatabaseError(`Failed to get PR`, { cause: error });
         }
     }
 
@@ -270,7 +270,7 @@ export class DatabaseService {
             return this.mapComment(result);
         } catch (error) {
             logger.error({ error, commentData }, 'Failed to create comment');
-            throw new DatabaseError(`Failed to create comment: ${error}`);
+            throw new DatabaseError(`Failed to create comment`, { cause: error });
         }
     }
 

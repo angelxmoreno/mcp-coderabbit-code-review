@@ -1,9 +1,9 @@
+/// <reference lib="es2022.error" />
+
 export class DatabaseError extends Error {
-    constructor(
-        message: string,
-        public override cause?: unknown
-    ) {
-        super(message);
+    constructor(message: string, options?: ErrorOptions) {
+        super(message, options);
         this.name = 'DatabaseError';
+        Object.setPrototypeOf(this, new.target.prototype);
     }
 }
