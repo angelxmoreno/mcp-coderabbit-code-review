@@ -6,13 +6,13 @@ pre-commit:
       skip:
         - merge
         - rebase
-      files: echo {staged_files}
+      glob: "*.{js,ts,tsx,jsx}"
     types:
       run: bun run typecheck
       skip:
         - merge
         - rebase
-      files: echo {staged_files}
+      glob: "*.{ts,tsx}"
 commit-msg:
   parallel: true
   commands:
