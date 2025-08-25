@@ -1,0 +1,1 @@
+// TypeScript type definitions for MCP protocol and endpoints

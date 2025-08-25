@@ -1,0 +1,1 @@
+// TypeScript type definitions for GitHub API responses and requests
