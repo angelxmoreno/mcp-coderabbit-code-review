@@ -160,9 +160,12 @@ export class DatabaseService {
 
             this.statements.updateComment = this.db.prepare(`
                 UPDATE comment 
-                SET agreement = ?, reply = ?, replied = ?, fix_applied = ?, 
+                SET agreement   = COALESCE(?, agreement),
+                    reply       = COALESCE(?, reply),
+                    replied     = COALESCE(?, replied),
+                    fix_applied = COALESCE(?, fix_applied),
                     reviewed_at = COALESCE(?, reviewed_at),
-                    fixed_at = COALESCE(?, fixed_at)
+                    fixed_at    = COALESCE(?, fixed_at)
                 WHERE id = ?
             `);
 
@@ -287,12 +290,12 @@ export class DatabaseService {
             throw new DatabaseError('Database not connected or statements not prepared');
         }
         this.statements.updateComment.run(
-            updates.agreement,
-            updates.reply,
-            updates.replied === undefined ? undefined : updates.replied ? 1 : 0,
-            updates.fix_applied === undefined ? undefined : updates.fix_applied ? 1 : 0,
-            updates.reviewed_at,
-            updates.fixed_at,
+            updates.agreement ?? null,
+            updates.reply ?? null,
+            updates.replied === undefined ? null : updates.replied ? 1 : 0,
+            updates.fix_applied === undefined ? null : updates.fix_applied ? 1 : 0,
+            updates.reviewed_at ?? null,
+            updates.fixed_at ?? null,
             id
         );
     }
