@@ -1,0 +1,1 @@
+// MCP server implementation with HTTP server and protocol handling
