@@ -25,14 +25,17 @@ export const createBaseLogger = (options: LoggerOptions = {}) => {
         });
     } else {
         // Production: Structured JSON logs to stderr
-        return pino({
-            ...baseOptions,
-            formatters: {
-                level: (label) => ({ level: label }),
+        return pino(
+            {
+                ...baseOptions,
+                formatters: {
+                    level: (label) => ({ level: label }),
+                },
             },
-        }, pino.destination({ dest: 2, sync: false })); // stderr, async for performance
+            pino.destination({ dest: 2, sync: false })
+        ); // stderr, async for performance
     }
-}
+};
 
 // Default logger instance for application use
- export const logger = createBaseLogger();
+export const logger = createBaseLogger();

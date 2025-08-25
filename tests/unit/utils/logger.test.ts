@@ -62,18 +62,19 @@ describe('Logger', () => {
         });
 
         it('should have standard pino logger methods', () => {
-            const methods = ['trace', 'debug', 'info', 'warn', 'error', 'fatal'];
-
-            for (const method of methods) {
-                expect(typeof logger[method]).toBe('function');
-            }
+            expect(typeof logger.trace).toBe('function');
+            expect(typeof logger.debug).toBe('function');
+            expect(typeof logger.info).toBe('function');
+            expect(typeof logger.warn).toBe('function');
+            expect(typeof logger.error).toBe('function');
+            expect(typeof logger.fatal).toBe('function');
         });
     });
 
     describe('environment-specific configuration', () => {
         it('should configure stderr output properly', () => {
             const testLogger = createBaseLogger();
-             
+
             // Should configure stderr output based on config.env
             expect(testLogger).toBeDefined();
         });
