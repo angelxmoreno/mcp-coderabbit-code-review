@@ -1,14 +1,13 @@
 import type { Config, LogLevel, NODE_ENV } from './types/config.ts';
 
 const env = (Bun.env.NODE_ENV ?? 'development') as NODE_ENV;
-const isDevelopment = env !== 'production';
-const isTesting = env !== 'testing';
-
+const isDevelopment = env === 'development';
+const isTesting = env === 'test';
 export const config: Config = {
     env,
     isDevelopment,
     isTesting,
-    logLevel: (Bun.env.LOG_LEVEL || process.env.LOG_LEVEL || 'info') as LogLevel,
+    logLevel: (Bun.env.LOG_LEVEL ?? (isTesting ? 'silent' : 'info')) as LogLevel,
     database: {
         path: '.coderabbit-mcp/state.db',
         walMode: true,

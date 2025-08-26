@@ -1,5 +1,5 @@
 import type { LevelWithSilent } from 'pino';
-export type NODE_ENV = 'development' | 'testing' | 'production';
+export type NODE_ENV = 'development' | 'test' | 'production';
 export type LogLevel = LevelWithSilent;
 export type Config = {
     env: NODE_ENV;
