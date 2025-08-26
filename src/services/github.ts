@@ -38,7 +38,10 @@ export class GitHubService {
     protected readonly axiosInstance: AxiosInstance; // Axios instance
 
     constructor(token?: string) {
-        this.token = token || this.getTokenFromEnv();
+        if (!token) {
+            throw new AuthenticationError('GitHub token not found in environment variables');
+        }
+        this.token = token;
         this.baseUrl = config.github.baseUrl;
         this.graphqlUrl = config.github.graphqlUrl;
         this.timeout = config.github.timeout;
@@ -53,14 +56,6 @@ export class GitHubService {
             timeout: this.timeout,
             headers: this.getDefaultHeaders(),
         });
-    }
-
-    protected getTokenFromEnv(): string {
-        const token = Bun.env.GITHUB_TOKEN || process.env.GITHUB_TOKEN;
-        if (!token) {
-            throw new AuthenticationError('GitHub token not found in environment variables');
-        }
-        return token;
     }
 
     protected validateToken(): void {

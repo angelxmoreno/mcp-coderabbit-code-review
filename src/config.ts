@@ -29,7 +29,3 @@ export const config: Config = {
         },
     },
 };
-
-if (isTesting) {
-    config.logLevel = 'silent';
-}

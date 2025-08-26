@@ -25,13 +25,11 @@ describe('GitHubService', () => {
 
     beforeEach(() => {
         mockAxios = new MockAdapter(axios);
-        process.env.GITHUB_TOKEN = testToken;
-        githubService = new GitHubService();
+        githubService = new GitHubService(testToken);
     });
 
     afterEach(() => {
         mockAxios.restore();
-        delete process.env.GITHUB_TOKEN;
     });
 
     describe('Constructor and Authentication', () => {
@@ -42,7 +40,6 @@ describe('GitHubService', () => {
         });
 
         it('should throw error when no token provided', () => {
-            delete process.env.GITHUB_TOKEN;
             expect(() => new GitHubService()).toThrow(AuthenticationError);
         });
 
@@ -89,7 +86,7 @@ describe('GitHubService', () => {
                 });
 
                 // The RateLimitError gets wrapped by getPullRequest
-                await expect(githubService.getPullRequest('owner', 'repo', 123)).rejects.toThrow(
+                expect(githubService.getPullRequest('owner', 'repo', 123)).rejects.toThrow(
                     'Failed to get pull request owner/repo#123'
                 );
             } finally {
@@ -145,7 +142,7 @@ describe('GitHubService', () => {
 
                 // Circuit should now be open - next request should fail immediately
                 // The circuit breaker error gets wrapped by getPullRequest
-                await expect(githubService.getPullRequest('owner', 'repo', 123)).rejects.toThrow(
+                expect(githubService.getPullRequest('owner', 'repo', 123)).rejects.toThrow(
                     'Failed to get pull request owner/repo#123'
                 );
             } finally {
@@ -196,7 +193,7 @@ describe('GitHubService', () => {
                     }
                 );
 
-                await expect(githubService.getPullRequest('owner', 'repo', 124)).resolves.toBeDefined();
+                expect(githubService.getPullRequest('owner', 'repo', 124)).resolves.toBeDefined();
                 Date.now = originalDateNow;
             } finally {
                 // Restore original method
@@ -254,7 +251,7 @@ describe('GitHubService', () => {
         it('should handle PR not found', async () => {
             mockAxios.onGet('/repos/owner/repo/pulls/999').replyOnce(404, 'Not Found');
 
-            await expect(githubService.getPullRequest('owner', 'repo', 999)).rejects.toThrow(
+            expect(githubService.getPullRequest('owner', 'repo', 999)).rejects.toThrow(
                 'Failed to get pull request owner/repo#999'
             );
         });
@@ -400,7 +397,7 @@ describe('GitHubService', () => {
                 'x-ratelimit-remaining': '4999',
             });
 
-            await expect(githubService.resolveReviewThread('owner', 'repo', 'some-thread-id')).rejects.toThrow(
+            expect(githubService.resolveReviewThread('owner', 'repo', 'some-thread-id')).rejects.toThrow(
                 'Failed to resolve review thread some-thread-id'
             );
         });
@@ -435,7 +432,7 @@ describe('GitHubService', () => {
         it('should throw GitHubError for generic API errors', async () => {
             mockAxios.onGet('/repos/owner/repo/pulls/123').replyOnce(500, 'Internal Server Error');
 
-            await expect(githubService.getPullRequest('owner', 'repo', 123)).rejects.toThrow(GitHubError);
+            expect(githubService.getPullRequest('owner', 'repo', 123)).rejects.toThrow(GitHubError);
         });
     });
 
@@ -680,7 +677,7 @@ describe('GitHubService', () => {
         it('should handle errors during sync', async () => {
             mockAxios.onGet('/repos/owner/repo/pulls/123/comments').networkErrorOnce();
 
-            await expect(
+            expect(
                 githubService.syncPrComments(mockDatabaseService as unknown as DatabaseService, 'owner', 'repo', 123)
             ).rejects.toThrow(GitHubError);
         });
