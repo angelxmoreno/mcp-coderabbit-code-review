@@ -378,9 +378,9 @@ export class DatabaseService {
         };
     }
 
-    private validateJournalMode(journalMode: string): string {
+    protected validateJournalMode(journalMode?: string | null): string {
         const validModes = ['WAL', 'DELETE', 'TRUNCATE', 'PERSIST', 'MEMORY', 'OFF'];
-        const upperMode = journalMode.toUpperCase();
+        const upperMode = (journalMode ?? 'WAL').toUpperCase();
 
         if (!validModes.includes(upperMode)) {
             logger.warn({ journalMode, valid: validModes }, 'Invalid journal_mode, using WAL');
@@ -390,9 +390,9 @@ export class DatabaseService {
         return upperMode;
     }
 
-    private validateSynchronous(synchronous: string): string {
+    protected validateSynchronous(synchronous?: string | null): string {
         const validModes = ['OFF', 'NORMAL', 'FULL', 'EXTRA'];
-        const upperMode = synchronous.toUpperCase();
+        const upperMode = (synchronous ?? 'NORMAL').toUpperCase();
 
         if (!validModes.includes(upperMode)) {
             logger.warn({ synchronous, valid: validModes }, 'Invalid synchronous mode, using NORMAL');
@@ -402,12 +402,12 @@ export class DatabaseService {
         return upperMode;
     }
 
-    private validateBusyTimeout(busyTimeout: number): number {
-        if (!Number.isInteger(busyTimeout) || busyTimeout < 0) {
+    protected validateBusyTimeout(busyTimeout?: number | null): number {
+        if (!Number.isInteger(busyTimeout) || (busyTimeout as number) < 0) {
             logger.warn({ busyTimeout }, 'Invalid busy_timeout, using 5000ms');
             return 5000;
         }
 
-        return busyTimeout;
+        return busyTimeout as number;
     }
 }
