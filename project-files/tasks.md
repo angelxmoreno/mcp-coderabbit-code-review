@@ -22,9 +22,9 @@
 - [x] write tests
 
 ## 4. GitHub API Service
-- [ ] update config file for GitHub API Service
-- [ ] GitHub API Service (`src/services/github.ts`)
-- [ ] write tests
+- [x] update config file for GitHub API Service
+- [x] GitHub API Service (`src/services/github.ts`)
+- [x] write tests
 
 ## 5. CodeRabbit Service
 - [ ] update config file for CodeRabbit Service
