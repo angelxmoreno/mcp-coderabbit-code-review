@@ -224,4 +224,30 @@ public storeCodeRabbitAnalysis(analysis: CodeRabbitAnalysis): void {
 }
 ```
 
+## Testing & Quality Assurance
+
+Before submitting your implementation, **ALWAYS run `bun check` and fix ALL issues**:
+
+```bash
+bun check
+```
+
+This command runs TypeScript compilation, linting, and other checks. **Do NOT declare the implementation complete until `bun check` passes with ZERO errors or warnings.**
+
+Common issues you might encounter:
+- Missing imports or type definitions
+- Unused variables or imports  
+- TypeScript type errors
+- Linting violations
+
+Fix each issue properly - don't use shortcuts like `any` types or `@ts-ignore` comments.
+
+## Final Checklist
+
+- [ ] All files created with proper imports
+- [ ] `bun check` passes with no errors or warnings  
+- [ ] Tests pass with `bun test tests/unit/services/coderabbit.test.ts`
+- [ ] Database integration works properly
+- [ ] Error handling follows established patterns
+
 That's it. Simple, focused, and does exactly what we need.
