@@ -19,7 +19,9 @@
         "lint": "biome check .",
         "lint:fix": "biome check --write",
         "lint:commits": "commitlint --from=origin/main --to=HEAD --verbose",
-        "typecheck": "tsc --noEmit"
+        "typecheck": "tsc --noEmit",
+        "check": "bun run lint:fix && bun run typecheck && bun run test",
+        "db:init": "bun run src/scripts/init-db.ts"
     },
     "dependencies": {
         "pino": "^9.9.0",
