@@ -2,7 +2,7 @@ import { Database, type Statement } from 'bun:sqlite';
 import { existsSync, mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { config } from '../config';
-import { DatabaseError } from '../errors/database';
+import { DatabaseError } from '../errors/database/DatabaseError';
 import type { CommentFilters, CommentInsert, CommentRecord, CommentUpdate, PrRecord, PrStats } from '../types/database';
 import { logger } from '../utils/logger';
 
