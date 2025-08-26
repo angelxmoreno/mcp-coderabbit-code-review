@@ -21,13 +21,18 @@ export class DatabaseService {
 
             this.db = new Database(this.databasePath);
 
-            this.db.exec('PRAGMA journal_mode = WAL');
-            this.db.exec('PRAGMA synchronous = NORMAL');
-            this.db.exec('PRAGMA cache_size = -64000');
-            this.db.exec('PRAGMA temp_store = MEMORY');
-            this.db.exec('PRAGMA mmap_size = 268435456');
-            this.db.exec('PRAGMA busy_timeout = 5000');
-            this.db.exec('PRAGMA foreign_keys = ON');
+            // Configure SQLite with values from config
+            const journalMode = this.validateJournalMode(config.database.journalMode);
+            const synchronous = this.validateSynchronous(config.database.synchronous);
+            const busyTimeout = this.validateBusyTimeout(config.database.busyTimeout);
+
+            this.db.exec(`PRAGMA journal_mode = ${journalMode}`);
+            this.db.exec(`PRAGMA synchronous = ${synchronous}`);
+            this.db.exec(`PRAGMA busy_timeout = ${busyTimeout}`);
+            this.db.exec('PRAGMA cache_size = -64000'); // Keep hardcoded
+            this.db.exec('PRAGMA temp_store = MEMORY'); // Keep hardcoded
+            this.db.exec('PRAGMA mmap_size = 268435456'); // Keep hardcoded
+            this.db.exec('PRAGMA foreign_keys = ON'); // Keep hardcoded
 
             this.initializeSchema();
             this.runMigrations();
@@ -35,6 +40,18 @@ export class DatabaseService {
 
             logger.info({ path: this.databasePath }, 'Database connection established');
         } catch (error) {
+            // Cleanup partially opened database connection
+            if (this.db) {
+                try {
+                    this.db.close();
+                } catch (closeError) {
+                    // Ignore errors during cleanup
+                    logger.debug({ closeError }, 'Error during database cleanup');
+                }
+                this.db = null;
+                this.statements = {};
+            }
+
             logger.error({ error, path: this.databasePath }, 'Failed to connect to database');
             throw new DatabaseError(`Failed to connect to database`, { cause: error });
         }
@@ -174,6 +191,8 @@ export class DatabaseService {
                 WHERE pr_id = ? 
                 AND (? IS NULL OR replied = ?)
                 AND (? IS NULL OR fix_applied = ?)
+                AND (? IS NULL OR agreement = ?)
+                AND (? IS NULL OR author = ?)
                 ORDER BY created_at DESC
             `);
 
@@ -219,7 +238,7 @@ export class DatabaseService {
             return result;
         } catch (error) {
             if (error instanceof Error && error.message.includes('UNIQUE constraint failed')) {
-                throw new DatabaseError(`PR already exists: ${repo}#${number}`);
+                throw new DatabaseError(`PR already exists: ${repo}#${number}`, { cause: error });
             }
             logger.error({ error, repo, number }, 'Failed to create PR');
             throw new DatabaseError(`Failed to create PR`, { cause: error });
@@ -306,12 +325,19 @@ export class DatabaseService {
         }
         const replied = filters.replied === undefined ? null : filters.replied ? 1 : 0;
         const fix_applied = filters.fix_applied === undefined ? null : filters.fix_applied ? 1 : 0;
+        const agreement = filters.agreement === undefined ? null : filters.agreement;
+        const author = filters.author === undefined ? null : filters.author;
+
         const results = this.statements.getCommentsByPr.all(
             prId,
             replied,
             replied,
             fix_applied,
-            fix_applied
+            fix_applied,
+            agreement,
+            agreement,
+            author,
+            author
         ) as CommentRecord[];
         return results.map(this.mapComment);
     }
@@ -350,5 +376,38 @@ export class DatabaseService {
             replied: Boolean(comment.replied),
             fix_applied: Boolean(comment.fix_applied),
         };
+    }
+
+    private validateJournalMode(journalMode: string): string {
+        const validModes = ['WAL', 'DELETE', 'TRUNCATE', 'PERSIST', 'MEMORY', 'OFF'];
+        const upperMode = journalMode.toUpperCase();
+
+        if (!validModes.includes(upperMode)) {
+            logger.warn({ journalMode, valid: validModes }, 'Invalid journal_mode, using WAL');
+            return 'WAL';
+        }
+
+        return upperMode;
+    }
+
+    private validateSynchronous(synchronous: string): string {
+        const validModes = ['OFF', 'NORMAL', 'FULL', 'EXTRA'];
+        const upperMode = synchronous.toUpperCase();
+
+        if (!validModes.includes(upperMode)) {
+            logger.warn({ synchronous, valid: validModes }, 'Invalid synchronous mode, using NORMAL');
+            return 'NORMAL';
+        }
+
+        return upperMode;
+    }
+
+    private validateBusyTimeout(busyTimeout: number): number {
+        if (!Number.isInteger(busyTimeout) || busyTimeout < 0) {
+            logger.warn({ busyTimeout }, 'Invalid busy_timeout, using 5000ms');
+            return 5000;
+        }
+
+        return busyTimeout;
     }
 }
