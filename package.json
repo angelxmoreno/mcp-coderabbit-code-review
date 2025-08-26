@@ -24,6 +24,8 @@
         "db:init": "bun run src/scripts/init-db.ts"
     },
     "dependencies": {
+        "axios": "^1.11.0",
+        "axios-mock-adapter": "^2.1.0",
         "pino": "^9.9.0",
         "pino-pretty": "^13.1.1",
         "zod": "^4.1.1"
