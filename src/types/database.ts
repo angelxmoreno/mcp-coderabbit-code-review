@@ -51,6 +51,9 @@ export interface CommentUpdate {
     fix_applied?: boolean;
     reviewed_at?: string | null;
     fixed_at?: string | null;
+    // Added these two fields
+    original_comment?: string | null;
+    prompt_for_ai_agents?: string | null;
 }
 
 // Filter types for queries

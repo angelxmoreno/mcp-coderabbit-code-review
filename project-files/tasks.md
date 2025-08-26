@@ -16,15 +16,15 @@
 - [x] Write tests for logging configuration
 
 ## 3. Database Service
-- [ ] update config file for Database Service
-- [ ] Database Service (`src/services/database.ts`)
-- [ ] Add database initialization script
-- [ ] write tests
+- [x] update config file for Database Service
+- [x] Database Service (`src/services/database.ts`)
+- [x] Add database initialization script
+- [x] write tests
 
 ## 4. GitHub API Service
-- [ ] update config file for GitHub API Service
-- [ ] GitHub API Service (`src/services/github.ts`)
-- [ ] write tests
+- [x] update config file for GitHub API Service
+- [x] GitHub API Service (`src/services/github.ts`)
+- [x] write tests
 
 ## 5. CodeRabbit Service
 - [ ] update config file for CodeRabbit Service

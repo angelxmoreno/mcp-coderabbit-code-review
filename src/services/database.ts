@@ -146,8 +146,8 @@ export class DatabaseService {
 
         try {
             this.statements.createPr = this.db.prepare(`
-                INSERT INTO pr (repo, number, last_synced) 
-                VALUES (?, ?, ?) 
+                INSERT INTO pr (repo, number, last_synced)
+                VALUES (?, ?, ?)
                 RETURNING *
             `);
 
@@ -165,7 +165,7 @@ export class DatabaseService {
 
             this.statements.createComment = this.db.prepare(`
                 INSERT INTO comment (
-                    pr_id, file, line, author, original_comment, 
+                    pr_id, file, line, author, original_comment,
                     prompt_for_ai_agents, created_at
                 ) VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
                 RETURNING *
@@ -176,19 +176,21 @@ export class DatabaseService {
             `);
 
             this.statements.updateComment = this.db.prepare(`
-                UPDATE comment 
-                SET agreement   = COALESCE(?, agreement),
-                    reply       = COALESCE(?, reply),
-                    replied     = COALESCE(?, replied),
-                    fix_applied = COALESCE(?, fix_applied),
-                    reviewed_at = COALESCE(?, reviewed_at),
-                    fixed_at    = COALESCE(?, fixed_at)
+                UPDATE comment
+                SET agreement            = COALESCE(?, agreement),
+                    reply                = COALESCE(?, reply),
+                    replied              = COALESCE(?, replied),
+                    fix_applied          = COALESCE(?, fix_applied),
+                    reviewed_at          = COALESCE(?, reviewed_at),
+                    fixed_at             = COALESCE(?, fixed_at),
+                    original_comment     = COALESCE(?, original_comment),
+                    prompt_for_ai_agents = COALESCE(?, prompt_for_ai_agents)
                 WHERE id = ?
             `);
 
             this.statements.getCommentsByPr = this.db.prepare(`
-                SELECT * FROM comment 
-                WHERE pr_id = ? 
+                SELECT * FROM comment
+                WHERE pr_id = ?
                 AND (? IS NULL OR replied = ?)
                 AND (? IS NULL OR fix_applied = ?)
                 AND (? IS NULL OR agreement = ?)
@@ -197,24 +199,24 @@ export class DatabaseService {
             `);
 
             this.statements.markCommentReplied = this.db.prepare(`
-                UPDATE comment 
+                UPDATE comment
                 SET reply = ?, replied = TRUE, reviewed_at = datetime('now')
                 WHERE id = ?
             `);
 
             this.statements.markCommentFixed = this.db.prepare(`
-                UPDATE comment 
+                UPDATE comment
                 SET fix_applied = TRUE, fixed_at = datetime('now')
                 WHERE id = ?
             `);
 
             this.statements.getPrStats = this.db.prepare(`
-                SELECT 
+                SELECT
                     COUNT(*) as total,
                     COALESCE(SUM(CASE WHEN replied = 1 THEN 1 ELSE 0 END), 0) as replied,
                     COALESCE(SUM(CASE WHEN fix_applied = 1 THEN 1 ELSE 0 END), 0) as fixed,
                     GROUP_CONCAT(CASE WHEN replied = 0 THEN id END) as pending_ids
-                FROM comment 
+                FROM comment
                 WHERE pr_id = ?
             `);
 
@@ -315,6 +317,8 @@ export class DatabaseService {
             updates.fix_applied === undefined ? null : updates.fix_applied ? 1 : 0,
             updates.reviewed_at ?? null,
             updates.fixed_at ?? null,
+            updates.original_comment ?? null, // New parameter
+            updates.prompt_for_ai_agents ?? null, // New parameter
             id
         );
     }

@@ -3,7 +3,7 @@ import { config } from '../config.ts';
 
 export const createBaseLogger = (options: LoggerOptions = {}) => {
     const baseOptions: LoggerOptions = {
-        level: process.env.LOG_LEVEL || 'info',
+        level: options.level ?? Bun.env.LOG_LEVEL ?? process.env.LOG_LEVEL ?? config.logLevel,
         ...options,
     };
 
