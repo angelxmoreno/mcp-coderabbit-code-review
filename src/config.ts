@@ -22,7 +22,7 @@ export const config: Config = {
         timeout: 10000,
         maxRetries: 3,
         retryDelay: 1000,
-        // Note: token is accessed dynamically in GitHubService
+        // GitHub token is managed by GitHubService to handle token rotation and refresh
         rateLimit: {
             maxRequests: 5000,
             warningThreshold: 100,

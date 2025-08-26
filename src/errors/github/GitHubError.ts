@@ -1,5 +1,3 @@
-/// <reference lib="es2022.error" />
-
 export class GitHubError extends Error {
     constructor(message: string, options?: ErrorOptions) {
         super(message, options);

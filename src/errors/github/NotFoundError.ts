@@ -1,5 +1,4 @@
-/// <reference lib="es2022.error" />
-import { GitHubError } from './GitHubError'; // Import GitHubError
+import { GitHubError } from './GitHubError';
 
 export class NotFoundError extends GitHubError {
     constructor(resource: string, options?: ErrorOptions) {
