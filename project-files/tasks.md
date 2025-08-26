@@ -27,8 +27,9 @@
 - [x] write tests
 
 ## 5. CodeRabbit Service
-- [ ] update config file for CodeRabbit Service
-- [ ] CodeRabbit Service (`src/services/coderabbit.ts`)
+- [ ] create CodeRabbit error classes (`src/errors/coderabbit/`)
+- [ ] create CodeRabbit types (`src/types/coderabbit.ts`)
+- [ ] implement CodeRabbit Service (`src/services/coderabbit.ts`)
 - [ ] write tests
 
 ## 6. MCP Server Implementation (with tests)
