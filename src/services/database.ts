@@ -98,7 +98,20 @@ export class DatabaseService {
                 file TEXT,
                 line INTEGER,
                 author TEXT,
+                bot_type TEXT CHECK(bot_type IN ('coderabbitai[bot]')) DEFAULT 'coderabbitai[bot]',
                 original_comment TEXT,
+                comment_type TEXT,
+                heading TEXT,
+                summary TEXT,
+                diff TEXT,
+                suggested_code TEXT,
+                committable_suggestion TEXT,
+                ai_prompt TEXT,
+                tools TEXT,
+                internal_id TEXT,
+                is_resolved BOOLEAN DEFAULT FALSE,
+                is_outdated BOOLEAN DEFAULT FALSE,
+                is_minimized BOOLEAN DEFAULT FALSE,
                 prompt_for_ai_agents TEXT,
                 agreement TEXT CHECK(agreement IN ('yes','no','partially')),
                 reply TEXT,
@@ -109,9 +122,10 @@ export class DatabaseService {
                 fixed_at TEXT
             );
 
-            CREATE TABLE IF NOT EXISTS coderabbit_analysis (
+            CREATE TABLE IF NOT EXISTS bot_analysis (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 comment_id INTEGER NOT NULL,
+                bot_type TEXT NOT NULL,
                 ai_prompt TEXT,
                 extracted_at TEXT NOT NULL,
                 FOREIGN KEY (comment_id) REFERENCES comment (id) ON DELETE CASCADE
@@ -121,6 +135,8 @@ export class DatabaseService {
             CREATE INDEX IF NOT EXISTS idx_comment_pr_id ON comment(pr_id);
             CREATE INDEX IF NOT EXISTS idx_comment_replied ON comment(replied);
             CREATE INDEX IF NOT EXISTS idx_comment_fix_applied ON comment(fix_applied);
+            CREATE INDEX IF NOT EXISTS idx_comment_bot_type ON comment(bot_type);
+            CREATE INDEX IF NOT EXISTS idx_comment_author ON comment(author);
         `;
 
         this.db.exec(createTables);
@@ -174,9 +190,12 @@ export class DatabaseService {
 
             this.statements.createComment = this.db.prepare(`
                 INSERT INTO comment (
-                    pr_id, file, line, author, original_comment,
-                    prompt_for_ai_agents, created_at
-                ) VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
+                    pr_id, file, line, author, bot_type, original_comment,
+                    comment_type, heading, summary, diff, suggested_code,
+                    committable_suggestion, ai_prompt, tools, internal_id,
+                    is_resolved, is_outdated, is_minimized, prompt_for_ai_agents,
+                    created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
                 RETURNING *
             `);
 
@@ -192,8 +211,21 @@ export class DatabaseService {
                     fix_applied          = COALESCE(?, fix_applied),
                     reviewed_at          = COALESCE(?, reviewed_at),
                     fixed_at             = COALESCE(?, fixed_at),
-                    original_comment     = COALESCE(?, original_comment),
-                    prompt_for_ai_agents = COALESCE(?, prompt_for_ai_agents)
+                    original_comment      = COALESCE(?, original_comment),
+                    prompt_for_ai_agents  = COALESCE(?, prompt_for_ai_agents),
+                    bot_type             = COALESCE(?, bot_type),
+                    comment_type         = COALESCE(?, comment_type),
+                    heading              = COALESCE(?, heading),
+                    summary              = COALESCE(?, summary),
+                    diff                 = COALESCE(?, diff),
+                    suggested_code       = COALESCE(?, suggested_code),
+                    committable_suggestion = COALESCE(?, committable_suggestion),
+                    ai_prompt            = COALESCE(?, ai_prompt),
+                    tools                = COALESCE(?, tools),
+                    internal_id          = COALESCE(?, internal_id),
+                    is_resolved          = COALESCE(?, is_resolved),
+                    is_outdated          = COALESCE(?, is_outdated),
+                    is_minimized         = COALESCE(?, is_minimized)
                 WHERE id = ?
             `);
 
@@ -229,9 +261,9 @@ export class DatabaseService {
                 WHERE pr_id = ?
             `);
 
-            this.statements.insertCodeRabbitAnalysis = this.db.prepare(`
-                INSERT INTO coderabbit_analysis (comment_id, ai_prompt, extracted_at)
-                VALUES (?, ?, ?)
+            this.statements.insertBotAnalysis = this.db.prepare(`
+                INSERT INTO bot_analysis (comment_id, bot_type, ai_prompt, extracted_at)
+                VALUES (?, ?, ?, ?)
             `);
 
             logger.info({ count: Object.keys(this.statements).length }, 'Prepared statements created');
@@ -300,7 +332,20 @@ export class DatabaseService {
                 commentData.file,
                 commentData.line,
                 commentData.author,
+                commentData.bot_type ?? 'coderabbitai[bot]',
                 commentData.original_comment,
+                commentData.comment_type,
+                commentData.heading,
+                commentData.summary,
+                commentData.diff,
+                commentData.suggested_code,
+                commentData.committable_suggestion,
+                commentData.ai_prompt,
+                commentData.tools ?? null,
+                commentData.internal_id,
+                commentData.is_resolved ?? false,
+                commentData.is_outdated ?? false,
+                commentData.is_minimized ?? false,
                 commentData.prompt_for_ai_agents
             ) as CommentRecord;
 
@@ -331,8 +376,21 @@ export class DatabaseService {
             updates.fix_applied === undefined ? null : updates.fix_applied ? 1 : 0,
             updates.reviewed_at ?? null,
             updates.fixed_at ?? null,
-            updates.original_comment ?? null, // New parameter
-            updates.prompt_for_ai_agents ?? null, // New parameter
+            updates.original_comment ?? null,
+            updates.prompt_for_ai_agents ?? null,
+            updates.bot_type ?? null,
+            updates.comment_type ?? null,
+            updates.heading ?? null,
+            updates.summary ?? null,
+            updates.diff ?? null,
+            updates.suggested_code ?? null,
+            updates.committable_suggestion ?? null,
+            updates.ai_prompt ?? null,
+            updates.tools ?? null,
+            updates.internal_id ?? null,
+            updates.is_resolved === undefined ? null : updates.is_resolved ? 1 : 0,
+            updates.is_outdated === undefined ? null : updates.is_outdated ? 1 : 0,
+            updates.is_minimized === undefined ? null : updates.is_minimized ? 1 : 0,
             id
         );
     }
@@ -381,16 +439,21 @@ export class DatabaseService {
         return this.statements.getPrStats.get(prId) as PrStats;
     }
 
-    public storeCodeRabbitAnalysis(analysis: CodeRabbitAnalysis): void {
-        if (!this.db || !this.statements.insertCodeRabbitAnalysis) {
+    public storeBotAnalysis(commentId: number, botType: string, aiPrompt: string, extractedAt: string): void {
+        if (!this.db || !this.statements.insertBotAnalysis) {
             throw new DatabaseError('Database not connected or statements not prepared');
         }
         try {
-            this.statements.insertCodeRabbitAnalysis.run(analysis.commentId, analysis.aiPrompt, analysis.extractedAt);
+            this.statements.insertBotAnalysis.run(commentId, botType, aiPrompt, extractedAt);
         } catch (error) {
-            logger.error({ error, analysis }, 'Failed to store CodeRabbit analysis');
-            throw new DatabaseError('Failed to store CodeRabbit analysis', { cause: error });
+            logger.error({ error, commentId, botType }, 'Failed to store bot analysis');
+            throw new DatabaseError('Failed to store bot analysis', { cause: error });
         }
+    }
+
+    // Legacy method for backward compatibility
+    public storeCodeRabbitAnalysis(analysis: CodeRabbitAnalysis): void {
+        this.storeBotAnalysis(analysis.commentId, 'coderabbitai[bot]', analysis.aiPrompt ?? '', analysis.extractedAt);
     }
 
     public transaction<T>(fn: () => T): T {
@@ -405,6 +468,9 @@ export class DatabaseService {
             ...comment,
             replied: Boolean(comment.replied),
             fix_applied: Boolean(comment.fix_applied),
+            is_resolved: Boolean(comment.is_resolved),
+            is_outdated: Boolean(comment.is_outdated),
+            is_minimized: Boolean(comment.is_minimized),
         };
     }
 

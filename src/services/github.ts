@@ -1,9 +1,11 @@
 import axios, { type AxiosError, type AxiosInstance, type AxiosRequestConfig, type AxiosResponse } from 'axios'; // Fix: type imports
+import { $ } from 'bun';
 import { config } from '../config';
 import { AuthenticationError } from '../errors/github/AuthenticationError';
 import { GitHubError } from '../errors/github/GitHubError';
 import { NotFoundError } from '../errors/github/NotFoundError';
 import { RateLimitError } from '../errors/github/RateLimitError';
+import type { BaseComment } from '../types/bots';
 import type {
     CreateCommentRequest,
     GitHubComment,
@@ -21,6 +23,14 @@ interface RateLimitInfo {
     remaining: number;
     reset: number;
     used: number;
+}
+
+export interface GitHubPRInfo {
+    number: number;
+    title: string;
+    headRefName: string;
+    baseRefName: string;
+    url: string;
 }
 
 export class GitHubService {
@@ -491,5 +501,117 @@ export class GitHubService {
             logger.error({ error, owner, repo, prNumber }, 'Failed to sync PR comments');
             throw new GitHubError('Failed to sync PR comments', { cause: error });
         }
+    }
+
+    /**
+     * Gets pull request information for a specific branch in a repository using GitHub CLI
+     */
+    public async getPullRequestForBranch(repo: string, branch: string): Promise<GitHubPRInfo> {
+        try {
+            const json =
+                await $`gh pr list --repo ${repo} --head ${branch} --json number,title,headRefName,baseRefName,url`.text();
+            const prs: GitHubPRInfo[] = JSON.parse(json);
+
+            const [pr] = prs;
+            if (!pr) {
+                throw new NotFoundError(`No PR found for ${repo}:${branch}`);
+            }
+
+            logger.debug({ repo, branch, prNumber: pr.number }, 'Found PR for branch');
+            return pr;
+        } catch (error) {
+            logger.error({ error, repo, branch }, 'Failed to get PR for branch');
+            if (error instanceof NotFoundError) {
+                throw error;
+            }
+            throw new GitHubError(`Failed to get PR for branch ${branch}`, { cause: error });
+        }
+    }
+
+    /**
+     * Gets review comments for a pull request using GitHub GraphQL API
+     * Fetches rich metadata including thread-level information (isResolved, isOutdated)
+     */
+    public async getReviewCommentsWithMetadata(pr: GitHubPRInfo): Promise<BaseComment[]> {
+        try {
+            const match = pr.url.match(/github\.com\/([^/]+)\/([^/]+)\/pull\/(\d+)/);
+            if (!match) throw new GitHubError(`Invalid GitHub PR URL: ${pr.url}`);
+            const [, owner, repo, prNumberStr] = match;
+            if (!prNumberStr) {
+                throw new GitHubError(`Could not parse PR number from URL: ${pr.url}`);
+            }
+            const prNumber = parseInt(prNumberStr, 10);
+
+            const query = `
+              query($owner: String!, $repo: String!, $pr: Int!) {
+                repository(owner: $owner, name: $repo) {
+                  pullRequest(number: $pr) {
+                    reviewThreads(first: 100) {
+                      nodes {
+                        isResolved
+                        isOutdated
+                        comments(first: 100) {
+                          nodes {
+                            databaseId
+                            author { login }
+                            body
+                            createdAt
+                            url
+                            path
+                            position
+                            isMinimized
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            `;
+
+            const result =
+                await $`gh api graphql -f query=${query} -f owner=${owner} -f repo=${repo} -F pr=${prNumber}`.json();
+
+            const allComments: BaseComment[] = [];
+            const threads = result.data.repository.pullRequest.reviewThreads.nodes;
+
+            for (const thread of threads) {
+                for (const comment of thread.comments.nodes) {
+                    allComments.push({
+                        commentId: comment.databaseId,
+                        body: comment.body,
+                        author: comment.author,
+                        createdAt: comment.createdAt,
+                        url: comment.url,
+                        path: comment.path,
+                        position: comment.position,
+                        isResolved: thread.isResolved,
+                        isOutdated: thread.isOutdated,
+                        isMinimized: comment.isMinimized,
+                    });
+                }
+            }
+
+            logger.debug({ prNumber, commentsCount: allComments.length }, 'Fetched review comments with metadata');
+            return allComments;
+        } catch (error) {
+            logger.error({ error, pr }, 'Failed to get review comments with metadata');
+            throw new GitHubError('Failed to get review comments with metadata', { cause: error });
+        }
+    }
+
+    /**
+     * Gets comments for a specific repository and PR number using GraphQL
+     */
+    public async getCommentsForPR(owner: string, repo: string, prNumber: number): Promise<BaseComment[]> {
+        const prInfo: GitHubPRInfo = {
+            number: prNumber,
+            title: '',
+            headRefName: '',
+            baseRefName: '',
+            url: `https://github.com/${owner}/${repo}/pull/${prNumber}`,
+        };
+
+        return await this.getReviewCommentsWithMetadata(prInfo);
     }
 }
