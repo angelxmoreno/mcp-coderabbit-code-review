@@ -12,7 +12,20 @@ export interface CommentRecord {
     file: string | null;
     line: number | null;
     author: string | null;
+    bot_type: 'coderabbitai[bot]' | null;
     original_comment: string | null;
+    comment_type: string | null;
+    heading: string | null;
+    summary: string | null;
+    diff: string | null;
+    suggested_code: string | null;
+    committable_suggestion: string | null;
+    ai_prompt: string | null;
+    tools: string | null;
+    internal_id: string | null;
+    is_resolved: boolean;
+    is_outdated: boolean;
+    is_minimized: boolean;
     prompt_for_ai_agents: string | null;
     agreement: 'yes' | 'no' | 'partially' | null;
     reply: string | null;
@@ -35,7 +48,20 @@ export interface CommentInsert {
     file?: string | null;
     line?: number | null;
     author?: string | null;
+    bot_type?: 'coderabbitai[bot]' | null;
     original_comment?: string | null;
+    comment_type?: string | null;
+    heading?: string | null;
+    summary?: string | null;
+    diff?: string | null;
+    suggested_code?: string | null;
+    committable_suggestion?: string | null;
+    ai_prompt?: string | null;
+    tools?: string | null;
+    internal_id?: string | null;
+    is_resolved?: boolean;
+    is_outdated?: boolean;
+    is_minimized?: boolean;
     prompt_for_ai_agents?: string | null;
 }
 
@@ -51,9 +77,21 @@ export interface CommentUpdate {
     fix_applied?: boolean;
     reviewed_at?: string | null;
     fixed_at?: string | null;
-    // Added these two fields
     original_comment?: string | null;
     prompt_for_ai_agents?: string | null;
+    bot_type?: 'coderabbitai[bot]' | null;
+    comment_type?: string | null;
+    heading?: string | null;
+    summary?: string | null;
+    diff?: string | null;
+    suggested_code?: string | null;
+    committable_suggestion?: string | null;
+    ai_prompt?: string | null;
+    tools?: string | null;
+    internal_id?: string | null;
+    is_resolved?: boolean;
+    is_outdated?: boolean;
+    is_minimized?: boolean;
 }
 
 // Filter types for queries
@@ -62,6 +100,10 @@ export interface CommentFilters {
     fix_applied?: boolean;
     agreement?: 'yes' | 'no' | 'partially';
     author?: string;
+    bot_type?: 'coderabbitai[bot]';
+    comment_type?: string;
+    is_resolved?: boolean;
+    is_outdated?: boolean;
 }
 
 export interface PrFilters {
