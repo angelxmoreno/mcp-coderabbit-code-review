@@ -114,7 +114,7 @@ export class DatabaseService {
                 comment_id INTEGER NOT NULL,
                 ai_prompt TEXT,
                 extracted_at TEXT NOT NULL,
-                FOREIGN KEY (comment_id) REFERENCES comment (id)
+                FOREIGN KEY (comment_id) REFERENCES comment (id) ON DELETE CASCADE
             );
 
             CREATE INDEX IF NOT EXISTS idx_pr_repo_number ON pr(repo, number);
@@ -227,6 +227,11 @@ export class DatabaseService {
                     GROUP_CONCAT(CASE WHEN replied = 0 THEN id END) as pending_ids
                 FROM comment
                 WHERE pr_id = ?
+            `);
+
+            this.statements.insertCodeRabbitAnalysis = this.db.prepare(`
+                INSERT INTO coderabbit_analysis (comment_id, ai_prompt, extracted_at)
+                VALUES (?, ?, ?)
             `);
 
             logger.info({ count: Object.keys(this.statements).length }, 'Prepared statements created');
@@ -377,14 +382,15 @@ export class DatabaseService {
     }
 
     public storeCodeRabbitAnalysis(analysis: CodeRabbitAnalysis): void {
-        if (!this.db) throw new DatabaseError('Database not connected');
-
-        this.db
-            .prepare(`
-            INSERT INTO coderabbit_analysis (comment_id, ai_prompt, extracted_at)
-            VALUES (?, ?, ?)
-        `)
-            .run(analysis.commentId, analysis.aiPrompt, analysis.extractedAt);
+        if (!this.db || !this.statements.insertCodeRabbitAnalysis) {
+            throw new DatabaseError('Database not connected or statements not prepared');
+        }
+        try {
+            this.statements.insertCodeRabbitAnalysis.run(analysis.commentId, analysis.aiPrompt, analysis.extractedAt);
+        } catch (error) {
+            logger.error({ error, analysis }, 'Failed to store CodeRabbit analysis');
+            throw new DatabaseError('Failed to store CodeRabbit analysis', { cause: error });
+        }
     }
 
     public transaction<T>(fn: () => T): T {

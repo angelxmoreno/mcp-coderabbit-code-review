@@ -38,7 +38,7 @@ describe('DatabaseService', () => {
 
         it('should handle double close gracefully', async () => {
             await dbService.close();
-            expect(dbService.close()).resolves.toBeUndefined();
+            await expect(dbService.close()).resolves.toBeUndefined();
         });
     });
 
