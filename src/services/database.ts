@@ -2,7 +2,8 @@ import { Database, type Statement } from 'bun:sqlite';
 import { existsSync, mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { config } from '../config';
-import { DatabaseError } from '../errors/database';
+import { DatabaseError } from '../errors/database/DatabaseError';
+import type { CodeRabbitAnalysis } from '../types/coderabbit';
 import type { CommentFilters, CommentInsert, CommentRecord, CommentUpdate, PrRecord, PrStats } from '../types/database';
 import { logger } from '../utils/logger';
 
@@ -106,6 +107,14 @@ export class DatabaseService {
                 created_at TEXT DEFAULT (datetime('now')),
                 reviewed_at TEXT,
                 fixed_at TEXT
+            );
+
+            CREATE TABLE IF NOT EXISTS coderabbit_analysis (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                comment_id INTEGER NOT NULL,
+                ai_prompt TEXT,
+                extracted_at TEXT NOT NULL,
+                FOREIGN KEY (comment_id) REFERENCES comment (id) ON DELETE CASCADE
             );
 
             CREATE INDEX IF NOT EXISTS idx_pr_repo_number ON pr(repo, number);
@@ -218,6 +227,11 @@ export class DatabaseService {
                     GROUP_CONCAT(CASE WHEN replied = 0 THEN id END) as pending_ids
                 FROM comment
                 WHERE pr_id = ?
+            `);
+
+            this.statements.insertCodeRabbitAnalysis = this.db.prepare(`
+                INSERT INTO coderabbit_analysis (comment_id, ai_prompt, extracted_at)
+                VALUES (?, ?, ?)
             `);
 
             logger.info({ count: Object.keys(this.statements).length }, 'Prepared statements created');
@@ -365,6 +379,18 @@ export class DatabaseService {
             throw new DatabaseError('Database not connected or statements not prepared');
         }
         return this.statements.getPrStats.get(prId) as PrStats;
+    }
+
+    public storeCodeRabbitAnalysis(analysis: CodeRabbitAnalysis): void {
+        if (!this.db || !this.statements.insertCodeRabbitAnalysis) {
+            throw new DatabaseError('Database not connected or statements not prepared');
+        }
+        try {
+            this.statements.insertCodeRabbitAnalysis.run(analysis.commentId, analysis.aiPrompt, analysis.extractedAt);
+        } catch (error) {
+            logger.error({ error, analysis }, 'Failed to store CodeRabbit analysis');
+            throw new DatabaseError('Failed to store CodeRabbit analysis', { cause: error });
+        }
     }
 
     public transaction<T>(fn: () => T): T {

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from 'bun:test';
-import { DatabaseError } from '../../../src/errors/database';
+import { DatabaseError } from '../../../src/errors/database/DatabaseError';
 import { DatabaseService } from '../../../src/services/database';
 
 import type { CommentFilters, CommentInsert } from '../../../src/types/database';
