@@ -1,7 +1,9 @@
 import { CodeRabbitError } from '../errors/coderabbit/CodeRabbitError';
 import { CommentParsingError } from '../errors/coderabbit/CommentParsingError';
+import type { BaseComment, CodeRabbitComment } from '../types/bots';
 import type { CodeRabbitAnalysis, PromptExtractionResult } from '../types/coderabbit';
 import type { GitHubReviewComment } from '../types/github';
+import { parseCodeRabbitComment, parseComments } from '../utils/bot-parser';
 import { logger } from '../utils/logger';
 import type { DatabaseService } from './database';
 
@@ -25,6 +27,62 @@ export class CodeRabbitService {
         } catch (error) {
             logger.error({ error, commentId: comment?.id }, 'Error checking CodeRabbit comment');
             return false;
+        }
+    }
+
+    // Enhanced method using new type system
+    parseCodeRabbitComments(baseComments: BaseComment[]): CodeRabbitComment[] {
+        try {
+            const parsedComments = parseComments(baseComments);
+            const coderabbitComments = parsedComments.filter(
+                (comment): comment is CodeRabbitComment => 'bot' in comment && comment.bot === 'coderabbitai[bot]'
+            );
+
+            logger.info(
+                {
+                    totalComments: baseComments.length,
+                    coderabbitComments: coderabbitComments.length,
+                },
+                'Parsed CodeRabbit comments using enhanced type system'
+            );
+
+            return coderabbitComments;
+        } catch (error) {
+            logger.error({ error }, 'Error parsing CodeRabbit comments');
+            throw new CodeRabbitError('Failed to parse CodeRabbit comments', { cause: error });
+        }
+    }
+
+    // Enhanced analysis method using new parsing system
+    analyzeEnhancedComment(baseComment: BaseComment): CodeRabbitComment | null {
+        try {
+            // Use new parsing system
+            const parsedComment = parseCodeRabbitComment(baseComment);
+
+            // Store analysis in database using new schema
+            if (this.databaseService) {
+                this.databaseService.storeBotAnalysis(
+                    parsedComment.commentId,
+                    'coderabbitai[bot]',
+                    parsedComment.aiPrompt || '',
+                    new Date().toISOString()
+                );
+            }
+
+            logger.debug(
+                {
+                    commentId: parsedComment.commentId,
+                    hasAiPrompt: !!parsedComment.aiPrompt,
+                    hasType: !!parsedComment.type,
+                    hasSuggestedCode: !!parsedComment.suggestedCode,
+                },
+                'Enhanced CodeRabbit comment analyzed'
+            );
+
+            return parsedComment;
+        } catch (error) {
+            logger.error({ error, commentId: baseComment.commentId }, 'Error analyzing enhanced comment');
+            return null;
         }
     }
 
