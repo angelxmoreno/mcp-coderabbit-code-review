@@ -1,1 +1,0 @@
-// MCP endpoints for workflow management: syncPrComments, reviewComments, getReviewReport

@@ -26,4 +26,7 @@ export type Config = {
             warningThreshold: number;
         };
     };
+    server: {
+        port: number;
+    };
 };

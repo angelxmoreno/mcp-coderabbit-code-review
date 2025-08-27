@@ -28,4 +28,7 @@ export const config: Config = {
             warningThreshold: 100,
         },
     },
+    server: {
+        port: Number(Bun.env.PORT) || 3000,
+    },
 };

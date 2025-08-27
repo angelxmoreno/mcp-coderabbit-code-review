@@ -21,10 +21,14 @@
         "lint:commits": "commitlint --from=origin/main --to=HEAD --verbose",
         "typecheck": "tsc --noEmit",
         "check": "bun run lint:fix && bun run typecheck && bun run test",
-        "db:init": "bun run src/scripts/init-db.ts"
+        "db:init": "bun run src/scripts/init-db.ts",
+        "dev": "bun --hot src/index.ts",
+        "start": "bun src/index.ts"
     },
     "dependencies": {
+        "@octokit/rest": "^20.1.1",
         "axios": "^1.11.0",
+        "hono": "^4.6.12",
         "pino": "^9.9.0",
         "pino-pretty": "^13.1.1",
         "zod": "^4.1.1"

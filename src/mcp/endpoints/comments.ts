@@ -1,1 +1,0 @@
-// MCP endpoints for comment management: replyToComment, markCommentAsResolved, applyFix
